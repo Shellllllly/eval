@@ -8,3 +8,5 @@ Using the following code to call the function.
 thread = evalThread(1, "t1", 1)
 thread.start()
 ```
+
+One may need to customise the endpoint, creator and private token in thread.py
