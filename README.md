@@ -1,6 +1,4 @@
-# yolo_test
-
-## Script of creating another thread and training job for validation
+# Script of performing validation using another thread and training job
 
 Put both files under same directory as the calling script and import thread.py. 
 Using the following code to call the function.
