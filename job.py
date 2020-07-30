@@ -19,7 +19,7 @@ logging.basicConfig()
 
 
  
-def createJob(endpoint, cred, creator, nm, interceptor):
+def createJob(endpoint, cred, creator, nm, interceptor, sh_file):
     with grpc.secure_channel(endpoint, cred) as channel:
         intercept_channel = grpc.intercept_channel(
             channel, interceptor)
@@ -34,7 +34,7 @@ def createJob(endpoint, cred, creator, nm, interceptor):
                         kind=job_pb2.TrainingJob,
                         common=job_pb2.JobCommon(
                             # Input args, only for running single script
-                            args=['bash /workspace/mnt/storage/shenxiaohan/ssssss/evalModel.sh'],
+                            args=['{}'.format(sh_file)],
                             # Image
                             image='reg.supremind.info/hub/atom/deep-learning/atom-pytorch:1.4-cuda100-py3',
                             # Resource package
@@ -119,7 +119,7 @@ def delJob(endpoint, cred, creator, nm, interceptor):
  
             
 
-def eval(endpoint, creator, nm, p):
+def eval(endpoint, creator, nm, p, sh_file):
     print("evaluating....")
     interceptor = header_manipulator_client_interceptor.header_adder_interceptor('authorization', 'private ' + p)
     cred = grpc.ssl_channel_credentials()
@@ -130,16 +130,6 @@ def eval(endpoint, creator, nm, p):
         pass
         time.sleep(5)
     finally:
-        createJob(endpoint, cred, creator, nm, interceptor)
+        createJob(endpoint, cred, creator, nm, interceptor, sh_file)
         time.sleep(5)
         startJob(endpoint, cred, creator, nm, interceptor)
-
-
-
-
-# if __name__ == '__main__':
-    # createJob(endpoint, cred, creator, 'evalModel')
-    # getJob(endpoint, cred, creator, 'evalModel')
-    # time.sleep(5)
-    # startJob(endpoint, cred, creator, 'test2')
-    # delJob(endpoint, cred, creator, 'evalModel')
