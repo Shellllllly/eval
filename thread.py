@@ -18,19 +18,19 @@ logging.basicConfig()
 
 
 class evalThread(threading.Thread):
-    def __init__(self, threadID, name, counter):
+    def __init__(self, threadID, name, sh, endpoint, creator, private_token, job_name):
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.name = name
-        self.counter = counter
+        # self.counter = counter
+        self.sh = sh
+        self.endpoint = endpoint
+        self.creator = creator
+        self.private_token = private_token
+        self.job_name = job_name
 
     def run(self):
         print("Starting " + self.name)
-
-        endpoint = 'apiserver.atom.sl.supremind.info:443' # apiserver 地址，不同集群地址不一样
-        creator = 'xxxxxx' # 创建者，一般为姓名拼音
-        private_token = 'xxxxxxxx'
-        job.eval(endpoint, creator, 'testModel', private_token)
-
+        job.eval(self.endpoint, self.creator, self.job_name, self.private_token, self.sh)
         print("Exiting " + self.name)
 
