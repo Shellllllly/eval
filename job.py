@@ -7,6 +7,7 @@ from atom import meta_pb2
 from atom import training_pb2
 from atom import job_pb2
 from atom import job_pb2_grpc
+from config import config
 # -*- coding: utf-8 -*
  
 _LOGGER = logging.getLogger(__name__)
@@ -17,9 +18,57 @@ logging.basicConfig()
 # p = 'PpxR8TMhGNQnbQSEmC7e' # your private token
 # creator = 'shenxiaohan' # 创建者，一般为姓名拼音
 
+# storages = []
+# volumes = []
+
+
+
+# def getGpuName(num_gpu):
+#     if(num_gpu==1):
+#         return 'gpu-2080-1'
+#     elif(num_gpu==2):
+#         return 'gpu-2080-2'
+#     elif(num_gpu==4):
+#         return 'gpu-2080-4'
+#     elif(num_gpu==8):
+#         return 'gpu-2080-8'
+
+# def resetStorages():
+#     storages = []
+
+# def resetVolumes():
+#     volumes = []
+
+
+def appendStorage(name, creator, readOnly):
+    return storages.append(job_pb2.StorageMounting(storage=meta_pb2.ResourceReference(
+                                        kind=meta_pb2.ResourceKindStorage, name=name, creator=creator
+                                    ), readOnly=readOnly))
+
+def appendVolume(name, creator, readOnly):
+    return volumes.append(job_pb2.VolumeMounting(volume=meta_pb2.ResourceReference(
+                                        kind=meta_pb2.ResourceKindVolume, name=name, creator=creator
+                                    ), readOnly=readOnly))
+
+def setStorages():
+    storages = []
+    for storage in config['storages']:
+        storages.append(job_pb2.StorageMounting(storage=meta_pb2.ResourceReference(
+                                        kind=meta_pb2.ResourceKindStorage, name=storage[0], creator=storage[1]
+                                    ), readOnly=storage[2]))
+    return storages
+
+
+def setVolumes():
+    volumes = []
+    for volume in config['volumes']:
+        volumes.append(job_pb2.VolumeMounting(volume=meta_pb2.ResourceReference(
+                                        kind=meta_pb2.ResourceKindVolume, name=volume[0], creator=volume[1]
+                                    ), readOnly=volume[2]))
+    return volumes
 
  
-def createJob(endpoint, cred, creator, nm, interceptor, sh_file):
+def createJob(endpoint, cred, creator, nm, interceptor, sh_file, imagee, num_gpu):
     with grpc.secure_channel(endpoint, cred) as channel:
         intercept_channel = grpc.intercept_channel(
             channel, interceptor)
@@ -34,12 +83,12 @@ def createJob(endpoint, cred, creator, nm, interceptor, sh_file):
                         kind=job_pb2.TrainingJob,
                         common=job_pb2.JobCommon(
                             # Input args, only for running single script
-                            args=['{}'.format(sh_file)],
+                            args=[config['args']],
                             # Image
-                            image='reg.supremind.info/hub/atom/deep-learning/atom-pytorch:1.4-cuda100-py3',
+                            image=config['image'],
                             # Resource package
                             package=meta_pb2.ResourceReference(
-                                kind=meta_pb2.ResourceKindPackage, name='gpu-2080-1'),
+                                kind=meta_pb2.ResourceKindPackage, name=config['gpu']),
                             # Mount storage
                             mounting=job_pb2.JobMounting(
                                 storages=[job_pb2.StorageMounting(
@@ -52,15 +101,21 @@ def createJob(endpoint, cred, creator, nm, interceptor, sh_file):
                                         kind=meta_pb2.ResourceKindStorage, name='ssssss', creator=creator
                                     ),
                                     readOnly=False
+                                )],
+                                volumes=[job_pb2.VolumeMounting(
+                                    volume=meta_pb2.ResourceReference(
+                                        kind=meta_pb2.ResourceKindVolume, name='public-image', creator='ava-admin'
+                                    ),
+                                    readOnly=True
                                 )]
                             )
                         ),
                         instruction=job_pb2.JobInstruction(
                             training=training_pb2.TrainingSpec(
-                                enableJupyter=False,
-                                enableSSH=False,
-                                enableFinder=False,
-                                enableLogger=True,
+                                enableJupyter=config['enableJupyter'],
+                                enableSSH=config['enableSSH'],
+                                enableFinder=config['enableFinder'],
+                                enableLogger=config['enableLogger'],
                             )
                         )
                     )
@@ -119,7 +174,7 @@ def delJob(endpoint, cred, creator, nm, interceptor):
  
             
 
-def eval(endpoint, creator, nm, p, sh_file):
+def eval(endpoint, creator, nm, p, sh_file, imagee, num_gpu):
     print("evaluating....")
     interceptor = header_manipulator_client_interceptor.header_adder_interceptor('authorization', 'private ' + p)
     cred = grpc.ssl_channel_credentials()
@@ -130,6 +185,18 @@ def eval(endpoint, creator, nm, p, sh_file):
         pass
         time.sleep(5)
     finally:
-        createJob(endpoint, cred, creator, nm, interceptor, sh_file)
+        createJob(endpoint, cred, creator, nm, interceptor, sh_file, imagee, num_gpu)
         time.sleep(5)
         startJob(endpoint, cred, creator, nm, interceptor)
+
+
+
+
+# if __name__ == '__main__':
+#     interceptor = header_manipulator_client_interceptor.header_adder_interceptor('authorization', 'private ' + p)
+#     cred = grpc.ssl_channel_credentials()
+    # createJob(endpoint, cred, creator, 'testModel', interceptor, 'bash /workspace/mnt/storage/shenxiaohan/ssssss/evalModel.sh')
+    # getJob(endpoint, cred, creator, 'evalModel')
+    # time.sleep(5)
+    # startJob(endpoint, cred, creator, 'testModel', interceptor)
+    # delJob(endpoint, cred, creator, 'testModel', interceptor)
